@@ -27,11 +27,15 @@ def job_expired(success_max_age, failure_max_age, timeout_seconds, job):
     if completion_time:
         completion_time = parse_time(completion_time)
         seconds_since_completion = now - completion_time
-        if status.get('succeeded') and seconds_since_completion > success_max_age:
+        if (status.get('succeeded') and
+                success_max_age > 0 and
+                seconds_since_completion > success_max_age):
             return '{:.0f}s old and succeeded'.format(seconds_since_completion)
         # job pod was not created and we fell back to creationTimestamp, or status.get('failure')
         # was found. Either way, we treat these as failure cases.
-        elif not status.get('succeeded') and seconds_since_completion > failure_max_age:
+        elif (not status.get('succeeded') and
+              failure_max_age > 0 and
+              seconds_since_completion > failure_max_age):
             return '{:.0f}s old and failed'.format(seconds_since_completion)
 
     start_time = status.get('startTime')
@@ -74,9 +78,13 @@ def pod_expired(success_max_age, failure_max_age, pod):
                     if seconds_since_completion == 0 or finish < seconds_since_completion:
                         seconds_since_completion = finish
 
-            if pod_status.get('phase') == 'Succeeded' and seconds_since_completion > success_max_age:
+            if (pod_status.get('phase') == 'Succeeded' and
+                    success_max_age > 0 and
+                    seconds_since_completion > success_max_age):
                 return '{:.0f}s old and succeeded'.format(seconds_since_completion)
-            elif pod_status.get('phase') == 'Failed' and seconds_since_completion > failure_max_age:
+            elif (pod_status.get('phase') == 'Failed' and
+                  failure_max_age > 0 and
+                  seconds_since_completion > failure_max_age):
                 return '{:.0f}s old and failed'.format(seconds_since_completion)
 
 
@@ -107,7 +115,8 @@ def main():
     api = pykube.HTTPClient(config)
 
     for job in pykube.Job.objects(api, namespace=pykube.all):
-        delete_if_expired(args.dry_run, job, job_expired(args.success_seconds, args.failure_seconds, args.timeout_seconds, job))
+        delete_if_expired(args.dry_run, job,
+                          job_expired(args.success_seconds, args.failure_seconds, args.timeout_seconds, job))
 
     for pod in pykube.Pod.objects(api, namespace=pykube.all):
         delete_if_expired(args.dry_run, pod, pod_expired(args.success_seconds, args.failure_seconds, pod))
