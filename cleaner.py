@@ -11,7 +11,7 @@ def parse_time(s: str):
     return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc).timestamp()
 
 
-def job_expired(max_age, timeout_seconds, job):
+def job_expired(success_max_age, failure_max_age, timeout_seconds, job):
     now = time.time()
     status = job.obj['status']
 
@@ -27,8 +27,12 @@ def job_expired(max_age, timeout_seconds, job):
     if completion_time:
         completion_time = parse_time(completion_time)
         seconds_since_completion = now - completion_time
-        if seconds_since_completion > max_age:
-            return '{:.0f}s old'.format(seconds_since_completion)
+        if status.get('succeeded') and seconds_since_completion > success_max_age:
+            return '{:.0f}s old and succeeded'.format(seconds_since_completion)
+        # job pod was not created and we fell back to creationTimestamp, or status.get('failure')
+        # was found. Either way, we treat these as failure cases.
+        elif seconds_since_completion > failure_max_age:
+            return '{:.0f}s old and failed'
 
     start_time = status.get('startTime')
     if start_time:
@@ -42,7 +46,7 @@ def job_expired(max_age, timeout_seconds, job):
             return 'timeout ({:.0f}s running)'.format(seconds_since_start)
 
 
-def pod_expired(max_age, pod):
+def pod_expired(success_max_age, failure_max_age, pod):
     now = time.time()
     pod_status = pod.obj['status']
 
@@ -70,8 +74,10 @@ def pod_expired(max_age, pod):
                     if seconds_since_completion == 0 or finish < seconds_since_completion:
                         seconds_since_completion = finish
 
-            if seconds_since_completion > max_age:
-                return '{:.0f}s old'.format(seconds_since_completion)
+            if pod_status.get('phase') == 'Succeeded' and seconds_since_completion > success_max_age:
+                return '{:.0f}s old and succeeded'.format(seconds_since_completion)
+            elif pod_status.get('phase') == 'Failed' and seconds_since_completion > failure_max_age:
+                return '{:.0f}s old and failed'.format(seconds_since_completion)
 
 
 def delete_if_expired(dry_run, entity, reason):
@@ -85,7 +91,10 @@ def delete_if_expired(dry_run, entity, reason):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seconds', type=int, default=3600, help='Delete all finished jobs older than ..')
+    parser.add_argument('--success-seconds', type=int,
+                        default=86400, help='Delete all successfully finished jobs older than ..')
+    parser.add_argument('--failure-seconds', type=int,
+                        default=-1, help='Delete all failed finished jobs older than ..')
     parser.add_argument('--timeout-seconds', type=int, default=-1, help='Kill all jobs older than ..')
     parser.add_argument('--dry-run', action='store_true', help='Dry run mode')
     args = parser.parse_args()
@@ -98,10 +107,10 @@ def main():
     api = pykube.HTTPClient(config)
 
     for job in pykube.Job.objects(api, namespace=pykube.all):
-        delete_if_expired(args.dry_run, job, job_expired(args.seconds, args.timeout_seconds, job))
+        delete_if_expired(args.dry_run, job, job_expired(args.success_seconds, args.failure_seconds, args.timeout_seconds, job))
 
     for pod in pykube.Pod.objects(api, namespace=pykube.all):
-        delete_if_expired(args.dry_run, pod, pod_expired(args.seconds, pod))
+        delete_if_expired(args.dry_run, pod, pod_expired(args.success_seconds, args.failure_seconds, pod))
 
 
 if __name__ == "__main__":
