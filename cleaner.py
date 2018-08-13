@@ -31,8 +31,8 @@ def job_expired(success_max_age, failure_max_age, timeout_seconds, job):
             return '{:.0f}s old and succeeded'.format(seconds_since_completion)
         # job pod was not created and we fell back to creationTimestamp, or status.get('failure')
         # was found. Either way, we treat these as failure cases.
-        elif seconds_since_completion > failure_max_age:
-            return '{:.0f}s old and failed'
+        elif not status.get('succeeded') and seconds_since_completion > failure_max_age:
+            return '{:.0f}s old and failed'.format(seconds_since_completion)
 
     start_time = status.get('startTime')
     if start_time:
