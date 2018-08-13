@@ -1,6 +1,6 @@
 .PHONY: test docker push
 
-IMAGE            ?= gcr.io/freenome-services-dev/kube-job-cleaner
+IMAGE            ?= gcr.io/freenome-build/kube-job-cleaner
 VERSION          ?= $(shell git describe --tags --always --dirty)
 TAG              ?= $(VERSION)
 GITHEAD          = $(shell git rev-parse --short HEAD)
