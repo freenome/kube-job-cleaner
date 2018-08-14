@@ -22,11 +22,11 @@ Pushing to the Docker Container Registry:
 
     $ make push
 
-Deploying (see kubernetes-deployment repo for more information):
+Deploying uses files in the kubernetes-deployment repo:
 
 .. code-block:: bash
     
-    $ cd kubernetes-deployment
+    $ cd <path_to_kubernetes-deployment>
     $ ./bin/deploy.py {dev,production} kube-job-cleaner <image_tag>
 
 There are a few options:
