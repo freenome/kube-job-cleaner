@@ -16,17 +16,28 @@ Building the Docker image:
 
     $ make
 
-Deploying:
+Pushing to the Docker Container Registry:
 
 .. code-block:: bash
 
-    $ kubectl apply -f deploy/
+    $ make push
+
+Deploying uses files in the kubernetes-deployment repo:
+
+.. code-block:: bash
+    
+    $ cd <path_to_kubernetes-deployment>
+    $ ./bin/deploy.py {dev,production} kube-job-cleaner <image_tag>
 
 There are a few options:
 
-``--seconds``
-    Number of seconds after job completion to remove the job (default: 1 hour)
+``--success-seconds``
+    Number of seconds after successful job completion to remove the job (default: 1 day)
+``--failure-seconds``
+    Number of seconds after failed job completion to remove the job (default: never)
 ``--timeout-seconds``
     Kill all jobs after X seconds (default: never)
 ``--dry-run``
     Do not actually remove any jobs, only print what would be done
+    
+To change the way this job is run on the clusters, edit `services/kube-job-cleaner/kube-job-cleaner.yaml` in the kubernetes-deployment repo to include the required options.
