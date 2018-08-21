@@ -61,7 +61,7 @@ def pod_expired(success_max_age, failure_max_age, pod):
             # preempting pods don't have any container information, so let's remove them immediately
             return 'preempted'
         elif not container_statuses:
-            print("Warning: Skipping pod without containers ({})".format(pod.obj['metadata'].get('name')))
+            print('Warning: Skipping pod without containers ({})'.format(pod.obj['metadata'].get('name')))
             return
         else:
             seconds_since_completion = 0
@@ -69,7 +69,7 @@ def pod_expired(success_max_age, failure_max_age, pod):
                 if 'terminated' in container['state']:
                     state = container['state']
                 elif 'terminated' in container.get('lastState', {}):
-                    # current state might be "waiting", but lastState is good enough
+                    # current state might be 'waiting', but lastState is good enough
                     state = container['lastState']
                 else:
                     state = None
@@ -90,7 +90,7 @@ def pod_expired(success_max_age, failure_max_age, pod):
 
 def delete_if_expired(dry_run, entity, reason):
     if reason:
-        print("Deleting {} {} ({})".format(entity.kind, entity.name, reason))
+        print('Deleting {} {} ({})'.format(entity.kind, entity.name, reason))
         if dry_run:
             print('** DRY RUN **')
         else:
@@ -100,7 +100,7 @@ def delete_if_expired(dry_run, entity, reason):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--success-seconds', type=int,
-                        default=86400, help='Delete all successfully finished jobs older than ..')
+                        default=3600, help='Delete all successfully finished jobs older than ..')
     parser.add_argument('--failure-seconds', type=int,
                         default=-1, help='Delete all failed finished jobs older than ..')
     parser.add_argument('--timeout-seconds', type=int, default=-1, help='Kill all jobs older than ..')
@@ -122,5 +122,5 @@ def main():
         delete_if_expired(args.dry_run, pod, pod_expired(args.success_seconds, args.failure_seconds, pod))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
