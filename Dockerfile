@@ -1,4 +1,4 @@
-FROM alpine:3.10.3
+FROM alpine:3.11.0
 MAINTAINER Henning Jacobs <henning@jacobs1.de>
 
 RUN apk add --no-cache python3 && \
